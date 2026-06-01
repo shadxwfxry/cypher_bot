@@ -1,0 +1,1 @@
+# Middlewares registration module

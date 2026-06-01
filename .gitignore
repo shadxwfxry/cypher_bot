@@ -1,0 +1,44 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python caching and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# IDE configurations
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Environmental variables (Sensitive tokens and passwords)
+.env
+
+# Local SQLite databases and WAL journals
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+cypher_local.db
+
+# Project logs
+*.log
+bot_errors.log
+
+# Zipped archives
+*.zip
+*.tar.gz
+*.rar
