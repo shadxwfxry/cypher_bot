@@ -84,13 +84,25 @@ class ExternalAPIClient:
                 logger.info("Using mock fallback for create_invoice (DEBUG mode active)")
                 mock_addresses = {
                     "BTC": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-                    "USDT": "TR7NHqju6E4yfC15f5dssC21t7D6xdS7yQ",
-                    "LITECOIN": "M8T1vQBBCEomRRt54Wj6Zwyb9aCpPQ3MQi",
-                    "TRON": "TY2MCGgR8VW3VUXzC52V9VYx23145s7yQP"
+                    "USDT_TRC20": "TR7NHqju6E4yfC15f5dssC21t7D6xdS7yQ",
+                    "USDT_ERC20": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+                    "USDC_ERC20": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "LTC": "M8T1vQBBCEomRRt54Wj6Zwyb9aCpPQ3MQi",
+                    "ETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
                 }
                 coin = cryptocurrency.upper()
-                if "USDT" in coin:
-                    coin = "USDT"
+                if coin not in mock_addresses:
+                    if "TRC20" in coin or "TRC-20" in coin:
+                        coin = "USDT_TRC20"
+                    elif "ERC20" in coin or "ERC-20" in coin:
+                        if "USDC" in coin:
+                            coin = "USDC_ERC20"
+                        else:
+                            coin = "USDT_ERC20"
+                    elif "LITECOIN" in coin:
+                        coin = "LTC"
+                    elif "BITCOIN" in coin:
+                        coin = "BTC"
                 
                 return {
                     "address": mock_addresses.get(coin, "0x0000000000000000000000000000000000000000"),

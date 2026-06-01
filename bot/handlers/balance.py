@@ -75,7 +75,7 @@ async def process_payment_selection(callback: CallbackQuery, _: Callable[[str], 
     if not invoice_data:
         # Fallback error handling
         error_text = "❌ Temporary billing offline. Please contact manager."
-        if cryptocurrency == "USDT":
+        if "USDT" in cryptocurrency:
             error_text = "❌ Ошибка создания платежа. Попробуйте позже."
         await callback.message.answer(text=error_text)
         await callback.answer()

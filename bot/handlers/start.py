@@ -12,7 +12,7 @@ router = Router(name="start_router")
 
 BANNER_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "banner.png")
 
-async def show_main_menu(message: Message, _: Any) -> None:
+async def show_main_menu(message: Message, _: Callable[[str], str]) -> None:
     """Helper to send the main menu with the welcome banner."""
     if os.path.exists(BANNER_PATH):
         try:
@@ -35,12 +35,12 @@ async def show_main_menu(message: Message, _: Any) -> None:
     )
 
 @router.message(CommandStart())
-async def start_cmd(message: Message, _: Any):
+async def start_cmd(message: Message, db_user: Any, _: Callable[[str], str]):
     """Handles the /start command."""
     await show_main_menu(message, _)
 
 @router.callback_query(F.data == "profile:menu")
-async def back_to_menu_callback(callback: CallbackQuery, _: Any):
+async def back_to_menu_callback(callback: CallbackQuery, db_user: Any, _: Callable[[str], str]):
     """Handles the Back to Menu button click, returning to the main menu screen."""
     try:
         # Edit the existing photo message's caption to show main menu
@@ -59,10 +59,39 @@ async def back_to_menu_callback(callback: CallbackQuery, _: Any):
         
     await callback.answer()
 
+@router.callback_query(F.data == "menu:toggle_lang")
+async def toggle_language_menu_callback(callback: CallbackQuery, db_user: Any, _: Callable[[str], str]):
+    """Switches the user language preference from the main menu."""
+    from bot.database.requests import update_user_language
+    from bot.middlewares.i18n import Translator
+    
+    new_lang = "ru" if db_user.language == "en" else "en"
+    await update_user_language(db_user.telegram_id, new_lang)
+    
+    # Update local reference and reload translator for immediate screen redraw
+    db_user.language = new_lang
+    new_translator = Translator(new_lang)
+    
+    await callback.answer(text=new_translator("lang_switched"), show_alert=True)
+    
+    # Redraw the main menu in place with new localized texts
+    try:
+        await callback.message.edit_caption(
+            caption=new_translator("welcome"),
+            reply_markup=get_main_menu_keyboard(new_translator),
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        logger.error(f"Error editing caption on language toggle: {e}")
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+        await show_main_menu(callback.message, new_translator)
 
 # Generic sections display handler
-@router.callback_query(F.data.startswith("menu:") & (F.data != "menu:profile"))
-async def handle_menu_sections(callback: CallbackQuery, _: Any):
+@router.callback_query(F.data.startswith("menu:") & (F.data != "menu:profile") & (F.data != "menu:toggle_lang"))
+async def handle_menu_sections(callback: CallbackQuery, db_user: Any, _: Callable[[str], str]):
     section = callback.data.split(":")[1]
     
     # Map section keys to translations

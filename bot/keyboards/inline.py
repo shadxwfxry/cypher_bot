@@ -4,13 +4,13 @@ from typing import Callable, Optional
 def get_main_menu_keyboard(_: Callable[[str], str]) -> InlineKeyboardMarkup:
     """
     Constructs the premium main menu keyboard.
-    Highlights Accounts & Documents.
+    Highlights Accounts & Documents, and supports direct language toggle.
     """
     keyboard = [
         # Visually highlighted Accounts
-        [InlineKeyboardButton(text=f"💎 {_('btn_accounts')} 💎", callback_data="menu:accounts")],
+        [InlineKeyboardButton(text=_("btn_accounts"), callback_data="menu:accounts")],
         # Visually highlighted Documents
-        [InlineKeyboardButton(text=f"📁 {_('btn_documents')} 📁", callback_data="menu:documents")],
+        [InlineKeyboardButton(text=_("btn_documents"), callback_data="menu:documents")],
         # Self-Reg and FULLZ split
         [
             InlineKeyboardButton(text=_("btn_self_reg"), callback_data="menu:self_reg"),
@@ -26,7 +26,9 @@ def get_main_menu_keyboard(_: Callable[[str], str]) -> InlineKeyboardMarkup:
             InlineKeyboardButton(text=_("btn_updates"), callback_data="menu:updates")
         ],
         # Support
-        [InlineKeyboardButton(text=_("btn_support"), callback_data="menu:support")]
+        [InlineKeyboardButton(text=_("btn_support"), callback_data="menu:support")],
+        # Language Switch Button
+        [InlineKeyboardButton(text=_("btn_toggle_lang"), callback_data="menu:toggle_lang")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
@@ -62,16 +64,15 @@ def get_profile_keyboard(_: Callable[[str], str], site_login: Optional[str] = No
 def get_crypto_selection_keyboard(_: Callable[[str], str]) -> InlineKeyboardMarkup:
     """
     Constructs the cryptocurrency selector for depositing funds.
+    Matches Screenshot 3 exactly.
     """
     keyboard = [
-        [
-            InlineKeyboardButton(text="BTC (Bitcoin)", callback_data="pay:btc"),
-            InlineKeyboardButton(text="USDT (TRC-20)", callback_data="pay:usdt")
-        ],
-        [
-            InlineKeyboardButton(text="LTC (Litecoin)", callback_data="pay:litecoin"),
-            InlineKeyboardButton(text="TRX (Tron)", callback_data="pay:tron")
-        ],
+        [InlineKeyboardButton(text="🍬 Bitcoin", callback_data="pay:btc")],
+        [InlineKeyboardButton(text="🍭 USDT TRC-20", callback_data="pay:usdt_trc20")],
+        [InlineKeyboardButton(text="🍭 USDT ERC-20", callback_data="pay:usdt_erc20")],
+        [InlineKeyboardButton(text="🍭 USDC ERC-20", callback_data="pay:usdc_erc20")],
+        [InlineKeyboardButton(text="🍭 LTC", callback_data="pay:ltc")],
+        [InlineKeyboardButton(text="🍭 ETH", callback_data="pay:eth")],
         [InlineKeyboardButton(text=_("btn_menu"), callback_data="menu:profile")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)

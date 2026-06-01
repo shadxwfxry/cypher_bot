@@ -1,15 +1,22 @@
 TRANSLATIONS = {
     "ru": {
-        "welcome": "<b>🤖 Добро пожаловать в Cypher.Bot!</b>\n\nРады видеть вас в нашем автоматизированном сервисе. Бот работает в двух режимах:\n• <b>Автономный</b> — мгновенные покупки с локального баланса бота.\n• <b>Синхронный</b> — привязка вашего аккаунта на сайте для общего баланса и истории.\n\n<i>Выберите нужный раздел в меню ниже:</i>",
-        "btn_accounts": "💎 ACCOUNTS / АККАУНТЫ 💎",
-        "btn_documents": "📁 DOCUMENTS / ДОКУМЕНТЫ 📁",
-        "btn_self_reg": "⚙️ Self-Reg",
-        "btn_fullz": "👤 FULLZ",
-        "btn_lookup": "🔍 Lookup / Пробив",
-        "btn_profile": "👤 My Profile / Профиль",
-        "btn_rules": "📜 Rules / Правила",
-        "btn_updates": "📢 Updates / Обновления тут",
-        "btn_support": "🤝 Support / Помощь",
+        "welcome": (
+            "🌳 Добро пожаловать в бота “Cypher Market”\n\n"
+            "⚠️ Перед использованием ознакомьтесь с правилами сервиса.\n\n"
+            "🔥 Поставки автоматически публикуются в нашем канале в течение всего дня и регулярные апдейты тут.\n\n"
+            "🤓 Support - @sup_cypher\n\n"
+            "🚀 Мы приглашаем к сотрудничеству новых поставщиков, подробности в поддержке."
+        ),
+        "btn_accounts": "🟢 Аккаунты",
+        "btn_documents": "🔵 Документы",
+        "btn_self_reg": "Self-Reg",
+        "btn_fullz": "FULLZ",
+        "btn_lookup": "Пробив",
+        "btn_profile": "Профиль",
+        "btn_rules": "Правила",
+        "btn_updates": "Обновления тут",
+        "btn_support": "Помощь",
+        "btn_toggle_lang": "English 🇬🇧",
         
         "profile_text": (
             "<b>👤 Ваш профиль Cypher</b>\n\n"
@@ -89,16 +96,23 @@ TRANSLATIONS = {
         "section_lookup": "🔍 <b>Раздел Lookup / Пробив</b>\n\nДанный раздел находится на стадии интеграции с сайтом. Ожидайте обновления ассортимента!"
     },
     "en": {
-        "welcome": "<b>🤖 Welcome to Cypher.Bot!</b>\n\nWe are glad to see you in our automated service. The bot operates in two modes:\n• <b>Autonomous</b> — instant purchases from the bot's local balance.\n• <b>Synchronous</b> — link your site account for shared balance and purchase history.\n\n<i>Choose the required section from the menu below:</i>",
-        "btn_accounts": "💎 ACCOUNTS / АККАУНТЫ 💎",
-        "btn_documents": "📁 DOCUMENTS / ДОКУМЕНТЫ 📁",
-        "btn_self_reg": "⚙️ Self-Reg",
-        "btn_fullz": "👤 FULLZ",
-        "btn_lookup": "🔍 Lookup / Lookup",
-        "btn_profile": "👤 My Profile / Profile",
-        "btn_rules": "📜 Rules / Rules",
-        "btn_updates": "📢 Updates / Updates here",
-        "btn_support": "🤝 Support / Help",
+        "welcome": (
+            "🌳 Welcome to the “Cypher Market” bot\n\n"
+            "⚠️ Please read the service rules before using the bot.\n\n"
+            "🔥 Listings are automatically posted on our channel throughout the day, and regular updates are available here.\n\n"
+            "🤓 Support - @sup_cypher\n\n"
+            "🚀 We invite new suppliers to partner with us; contact support."
+        ),
+        "btn_accounts": "🟢 Accounts",
+        "btn_documents": "🔵 Documents",
+        "btn_self_reg": "Self-Reg",
+        "btn_fullz": "FULLZ",
+        "btn_lookup": "Lookup",
+        "btn_profile": "My Profile",
+        "btn_rules": "Rules",
+        "btn_updates": "Updates here",
+        "btn_support": "Support",
+        "btn_toggle_lang": "Русский 🇷🇺",
         
         "profile_text": (
             "<b>👤 Your Cypher Profile</b>\n\n"
