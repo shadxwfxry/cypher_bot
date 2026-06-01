@@ -1,3 +1,4 @@
+print("=== MAIN START ===", flush=True)
 import sys
 import logging
 import asyncio
