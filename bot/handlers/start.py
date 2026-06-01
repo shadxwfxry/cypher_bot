@@ -10,10 +10,11 @@ from bot.config import settings
 logger = logging.getLogger(__name__)
 router = Router(name="start_router")
 
+# Path to the advertising/welcome banner graphic file of the bot
 BANNER_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "banner.png")
 
 async def show_main_menu(message: Message, _: Callable[[str], str]) -> None:
-    """Helper to send the main menu with the welcome banner."""
+    """Helper function to deliver the main menu accompanied by the visual greeting banner."""
     if os.path.exists(BANNER_PATH):
         try:
             photo = FSInputFile(BANNER_PATH)
@@ -25,9 +26,9 @@ async def show_main_menu(message: Message, _: Callable[[str], str]) -> None:
             )
             return
         except Exception as e:
-            logger.error(f"Error sending welcome photo: {e}")
+            logger.error(f"Failed to dispatch welcome greeting banner: {e}")
             
-    # Fallback to plain text if photo is missing or fails
+    # Text-only fallback if the banner image resource is missing or corrupted
     await message.answer(
         text=_("welcome"),
         reply_markup=get_main_menu_keyboard(_),
@@ -36,21 +37,21 @@ async def show_main_menu(message: Message, _: Callable[[str], str]) -> None:
 
 @router.message(CommandStart())
 async def start_cmd(message: Message, db_user: Any, _: Callable[[str], str]):
-    """Handles the /start command."""
+    """Handles CommandStart command /start requests."""
     await show_main_menu(message, _)
 
 @router.callback_query(F.data == "profile:menu")
 async def back_to_menu_callback(callback: CallbackQuery, db_user: Any, _: Callable[[str], str]):
-    """Handles the Back to Menu button click, returning to the main menu screen."""
+    """Returns users back from sub-menus to the main dashboard interface."""
     try:
-        # Edit the existing photo message's caption to show main menu
+        # Edit existing caption of the banner photo for a seamless transition
         await callback.message.edit_caption(
             caption=_("welcome"),
             reply_markup=get_main_menu_keyboard(_),
             parse_mode="HTML"
         )
     except Exception:
-        # Fallback to delete and send a new message (e.g. if the photo message is not active)
+        # Fallback: delete obsolete message and dispatch a fresh main menu card
         try:
             await callback.message.delete()
         except Exception:
@@ -61,20 +62,20 @@ async def back_to_menu_callback(callback: CallbackQuery, db_user: Any, _: Callab
 
 @router.callback_query(F.data == "menu:toggle_lang")
 async def toggle_language_menu_callback(callback: CallbackQuery, db_user: Any, _: Callable[[str], str]):
-    """Switches the user language preference from the main menu."""
+    """Switches interface language instantly directly from the main menu dashboard."""
     from bot.database.requests import update_user_language
     from bot.middlewares.i18n import Translator
     
     new_lang = "ru" if db_user.language == "en" else "en"
     await update_user_language(db_user.telegram_id, new_lang)
     
-    # Update local reference and reload translator for immediate screen redraw
+    # Update local memory cache and instantiate new translator instance for prompt rendering
     db_user.language = new_lang
     new_translator = Translator(new_lang)
     
     await callback.answer(text=new_translator("lang_switched"), show_alert=True)
     
-    # Redraw the main menu in place with new localized texts
+    # Rerender menu inline in-place with newly updated localized dictionary keys
     try:
         await callback.message.edit_caption(
             caption=new_translator("welcome"),
@@ -82,19 +83,19 @@ async def toggle_language_menu_callback(callback: CallbackQuery, db_user: Any, _
             parse_mode="HTML"
         )
     except Exception as e:
-        logger.error(f"Error editing caption on language toggle: {e}")
+        logger.error(f"Failed to update main menu caption on language toggle: {e}")
         try:
             await callback.message.delete()
         except Exception:
             pass
         await show_main_menu(callback.message, new_translator)
 
-# Generic sections display handler
+# Unified message router handler for general information sub-sections of the main menu
 @router.callback_query(F.data.startswith("menu:") & (F.data != "menu:profile") & (F.data != "menu:toggle_lang"))
 async def handle_menu_sections(callback: CallbackQuery, db_user: Any, _: Callable[[str], str]):
     section = callback.data.split(":")[1]
     
-    # Map section keys to translations
+    # Map callback payload triggers to bilingual dictionary keys
     section_map = {
         "accounts": "section_accounts",
         "documents": "section_documents",
@@ -109,9 +110,8 @@ async def handle_menu_sections(callback: CallbackQuery, db_user: Any, _: Callabl
     trans_key = section_map.get(section, "welcome")
     text_content = _(trans_key).format(support_user=settings.support_username)
     
-    # Edit the existing message or send a new one
-    # Since we click from the main menu (which is a photo message), editing it directly
-    # will replace the photo caption, which is perfect and extremely fluid!
+    # Edit the active image caption to provide a flicker-free visual transition.
+    # Editing the existing photo message avoids client screen jumps.
     try:
         await callback.message.edit_caption(
             caption=text_content,
@@ -119,7 +119,7 @@ async def handle_menu_sections(callback: CallbackQuery, db_user: Any, _: Callabl
             parse_mode="HTML"
         )
     except Exception:
-        # Fallback if the photo message couldn't be edited (e.g. if we were already in text mode)
+        # Fallback text reply if editing fails
         try:
             await callback.message.delete()
         except Exception:
@@ -131,3 +131,4 @@ async def handle_menu_sections(callback: CallbackQuery, db_user: Any, _: Callabl
         )
         
     await callback.answer()
+

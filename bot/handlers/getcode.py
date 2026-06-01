@@ -14,11 +14,11 @@ router = Router(name="getcode_router")
 @router.message(F.text.lower().in_(["getcode", "код", "2fa", "/getcode"]))
 async def get_2fa_code_handler(message: Message, db_user: Any, _: Callable[[str], str]):
     """
-    Handles real-time 2FA generation.
-    Checks if account is linked. If not, blocks request and alerts.
-    If linked, requests 6-digit code via secure external API.
+    Handles real-time 2FA authorization token retrieval command /getcode requests.
+    Validates user linking status beforehand.
+    Queries the external verification API server for the current 6-digit dynamic key.
     """
-    # Verify account is linked
+    # Verify account linkage status pre-requisite
     if not db_user.site_login:
         warn_msg = _("twofa_not_linked")
         await message.answer(
@@ -28,7 +28,7 @@ async def get_2fa_code_handler(message: Message, db_user: Any, _: Callable[[str]
         )
         return
         
-    # User is linked -> show typing action while hitting API
+    # Trigger typing chat action indicator state during API latency
     await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
     
     code = await api_client.get_2fa_code(db_user.telegram_id)
@@ -43,3 +43,4 @@ async def get_2fa_code_handler(message: Message, db_user: Any, _: Callable[[str]
             reply_markup=get_back_to_profile_keyboard(_),
             parse_mode="HTML"
         )
+

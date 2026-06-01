@@ -6,6 +6,10 @@ from bot.config import settings
 logger = logging.getLogger(__name__)
 
 class ExternalAPIClient:
+    """
+    Asynchronous client interface interacting with the external payment gateway and 2FA server.
+    Leverages connection pooling to minimize round-trip latency.
+    """
     def __init__(self, base_url: str = settings.external_api_url, token: str = settings.external_api_token):
         self.base_url = base_url.rstrip('/')
         self.token = token
@@ -16,21 +20,24 @@ class ExternalAPIClient:
         self._session: Optional[aiohttp.ClientSession] = None
 
     def get_session(self) -> aiohttp.ClientSession:
-        """Lazy initialization of a connection-pooled aiohttp ClientSession."""
+        """
+        Lazy initialization of the ClientSession connection pool.
+        Ensures TCP socket re-use for optimized outbound high-throughput connections.
+        """
         if self._session is None or self._session.closed:
             connector = aiohttp.TCPConnector(limit=100, ttl_dns_cache=300)
             self._session = aiohttp.ClientSession(connector=connector, headers=self._headers)
         return self._session
 
     async def close(self):
-        """Closes the client session pool on application shutdown."""
+        """Gracefully tears down the network connection pool during application shutdown."""
         if self._session and not self._session.closed:
             await self._session.close()
 
     async def check_hash(self, telegram_id: int, hash_password: str) -> Optional[str]:
         """
-        Sends telegram_id and website hash_password to external API.
-        Returns site_login (str) if valid, or None if invalid or error.
+        Validates account linkage secret hash key on the main marketplace site.
+        Returns corresponding marketplace site_login username if valid, otherwise None.
         """
         url = f"{self.base_url}/api/v1/auth/check-hash"
         payload = {"telegram_id": telegram_id, "hash_password": hash_password}
@@ -42,15 +49,15 @@ class ExternalAPIClient:
                     data = await response.json()
                     if data.get("status") == "success":
                         return data.get("site_login")
-                    logger.warning(f"Check hash rejected by API: {data.get('message')}")
+                    logger.warning(f"Hash validation rejected by marketplace API: {data.get('message')}")
                 else:
-                    logger.error(f"Check hash failed with HTTP status {response.status}")
+                    logger.error(f"Failed to link hash, HTTP status: {response.status}")
         except Exception as e:
-            logger.error(f"Error connecting to external API check-hash: {e}")
+            logger.error(f"Failed to connect to check-hash API endpoint: {e}")
             
-            # Smart Mock Fallback for local testing/offline mode
+            # Robust local environment fallbacks when debugging without internet connectivity
             if settings.debug:
-                logger.info("Using mock fallback for check_hash (DEBUG mode active)")
+                logger.info("Active account linking mockup response triggered (DEBUG mode)")
                 if hash_password.lower().startswith("error") or len(hash_password) < 4:
                     return None
                 return f"user_{telegram_id % 10000}"
@@ -59,8 +66,8 @@ class ExternalAPIClient:
 
     async def create_invoice(self, telegram_id: int, cryptocurrency: str) -> Optional[Dict[str, Any]]:
         """
-        Requests the external payment merchant API to create an invoice/deposit address.
-        Returns dict containing 'address' and 'min_amount' if successful, or None.
+        Requests new custom payment invoice address token from external gateway client API.
+        Returns a dictionary containing wallet info and replenishment limits, otherwise None.
         """
         url = f"{self.base_url}/api/v1/billing/create-invoice"
         payload = {"telegram_id": telegram_id, "cryptocurrency": cryptocurrency.upper()}
@@ -75,13 +82,13 @@ class ExternalAPIClient:
                             "address": data.get("address"),
                             "min_amount": float(data.get("min_amount", 15.0))
                         }
-                logger.error(f"Create invoice failed with HTTP status {response.status}")
+                logger.error(f"Failed to compile payment invoice request, HTTP status: {response.status}")
         except Exception as e:
-            logger.error(f"Error connecting to external API create-invoice: {e}")
+            logger.error(f"Failed to connect to create-invoice API endpoint: {e}")
             
-            # Smart Mock Fallback for local testing/offline mode
+            # Local debug simulation of invoice generation for development testing
             if settings.debug:
-                logger.info("Using mock fallback for create_invoice (DEBUG mode active)")
+                logger.info("Active payment coin mock addresses triggered (DEBUG mode)")
                 mock_addresses = {
                     "BTC": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
                     "USDT_TRC20": "TR7NHqju6E4yfC15f5dssC21t7D6xdS7yQ",
@@ -113,8 +120,7 @@ class ExternalAPIClient:
 
     async def get_2fa_code(self, telegram_id: int) -> Optional[str]:
         """
-        Requests the real-time 2FA code from external marketplace API.
-        Returns 6-digit code or None.
+        Retrieves active marketplace 2FA authorization token.
         """
         url = f"{self.base_url}/api/v1/auth/2fa"
         payload = {"telegram_id": telegram_id}
@@ -126,16 +132,17 @@ class ExternalAPIClient:
                     data = await response.json()
                     if data.get("status") == "success":
                         return str(data.get("code"))
-                logger.error(f"2FA retrieval failed with HTTP status {response.status}")
+                logger.error(f"Failed to fetch active 2FA key, HTTP status: {response.status}")
         except Exception as e:
-            logger.error(f"Error connecting to external API 2fa: {e}")
+            logger.error(f"Failed to connect to 2FA endpoint: {e}")
             
-            # Smart Mock Fallback for local testing/offline mode
+            # Generate random temporary mock code on local PC to verify the user experience
             if settings.debug:
-                logger.info("Using mock fallback for get_2fa_code (DEBUG mode active)")
+                logger.info("Active random mock 2FA code generated (DEBUG mode)")
                 import random
                 return "".join(random.choices("0123456789", k=6))
                 
         return None
 
 api_client = ExternalAPIClient()
+

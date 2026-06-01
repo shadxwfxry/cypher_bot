@@ -7,15 +7,15 @@ TRANSLATIONS = {
             "🤓 Support - @sup_cypher\n\n"
             "🚀 Мы приглашаем к сотрудничеству новых поставщиков, подробности в поддержке."
         ),
-        "btn_accounts": "🟢 Аккаунты",
-        "btn_documents": "🔵 Документы",
-        "btn_self_reg": "Self-Reg",
-        "btn_fullz": "FULLZ",
-        "btn_lookup": "Пробив",
-        "btn_profile": "Профиль",
-        "btn_rules": "Правила",
-        "btn_updates": "Обновления тут",
-        "btn_support": "Помощь",
+        "btn_accounts": "💎 Аккаунты",
+        "btn_documents": "📁 Документы",
+        "btn_self_reg": "⚙️ Self-Reg",
+        "btn_fullz": "🪪 FULLZ",
+        "btn_lookup": "🔍 Пробив",
+        "btn_profile": "👤 Профиль",
+        "btn_rules": "📜 Правила",
+        "btn_updates": "📢 Обновления",
+        "btn_support": "🤝 Помощь",
         "btn_toggle_lang": "English 🇬🇧",
         
         "profile_text": (
@@ -103,15 +103,15 @@ TRANSLATIONS = {
             "🤓 Support - @sup_cypher\n\n"
             "🚀 We invite new suppliers to partner with us; contact support."
         ),
-        "btn_accounts": "🟢 Accounts",
-        "btn_documents": "🔵 Documents",
-        "btn_self_reg": "Self-Reg",
-        "btn_fullz": "FULLZ",
-        "btn_lookup": "Lookup",
-        "btn_profile": "My Profile",
-        "btn_rules": "Rules",
-        "btn_updates": "Updates here",
-        "btn_support": "Support",
+        "btn_accounts": "💎 Accounts",
+        "btn_documents": "📁 Documents",
+        "btn_self_reg": "⚙️ Self-Reg",
+        "btn_fullz": "🪪 FULLZ",
+        "btn_lookup": "🔍 Lookup",
+        "btn_profile": "👤 Profile",
+        "btn_rules": "📜 Rules",
+        "btn_updates": "📢 Updates",
+        "btn_support": "🤝 Support",
         "btn_toggle_lang": "Русский 🇷🇺",
         
         "profile_text": (

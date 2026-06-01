@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 router = Router(name="balance_router")
 
 async def show_crypto_selection(message_or_query: Any, _: Callable[[str], str]) -> None:
-    """Helper to display the cryptocurrency choices."""
+    """Helper method to display the cryptocurrency payment selection keyboard."""
     text = _("select_crypto")
     markup = get_crypto_selection_keyboard(_)
     
@@ -41,21 +41,21 @@ async def show_crypto_selection(message_or_query: Any, _: Callable[[str], str]) 
 @router.message(Command("balance"))
 @router.message(F.text.lower().in_(["balance", "баланс", "/balance"]))
 async def balance_cmd(message: Message, _: Callable[[str], str]):
-    """Handles the /balance command."""
+    """Handles text command /balance."""
     await show_crypto_selection(message, _)
 
 @router.callback_query(F.data == "profile:deposit")
 async def deposit_callback(callback: CallbackQuery, _: Callable[[str], str]):
-    """Handles click on the 'Deposit balance' button in Profile."""
+    """Handles 'Deposit Balance' profile callback button click events."""
     await show_crypto_selection(callback, _)
     await callback.answer()
 
 @router.callback_query(F.data.startswith("pay:"))
 async def process_payment_selection(callback: CallbackQuery, _: Callable[[str], str]):
     """
-    Handles payment method selection.
-    Queries external API client to get deposit address and displays it.
-    Applies the custom fee policy for USDT deposits.
+    Handles payment method selection click.
+    Sends transaction billing token setup request to external billing API.
+    Injects fee commission instructions if USDT is selected.
     """
     parts = callback.data.split(":")
     if len(parts) < 2 or not parts[1]:
@@ -66,14 +66,14 @@ async def process_payment_selection(callback: CallbackQuery, _: Callable[[str], 
     cryptocurrency = parts[1].upper()
     tg_id = callback.from_user.id
     
-    # Show chat action
+    # Trigger typing animation while requesting billing API
     await callback.message.bot.send_chat_action(chat_id=callback.message.chat.id, action="typing")
     
-    # Request payment invoice from API
+    # Generate billing invoice address from payment client API
     invoice_data = await api_client.create_invoice(tg_id, cryptocurrency)
     
     if not invoice_data:
-        # Fallback error handling
+        # Fallback alert notification if billing API is down
         error_text = "❌ Temporary billing offline. Please contact manager."
         if "USDT" in cryptocurrency:
             error_text = "❌ Ошибка создания платежа. Попробуйте позже."
@@ -83,11 +83,10 @@ async def process_payment_selection(callback: CallbackQuery, _: Callable[[str], 
         
     address = invoice_data.get("address")
     
-    # Rigid USDT commission warning rules:
-    # 15-100 USDT -> "fee is 5 usdt"
-    # 100+ USDT -> "no fee"
+    # Strict USDT billing fee commission notification limits:
+    # 15-100 USDT -> $5 USD flat fee warning is shown
+    # 100+ USDT -> Free / no fee warning is shown
     if "USDT" in cryptocurrency:
-        # Construct dynamic fee message block
         fee_warning = _("fee_usdt_warning")
     else:
         fee_warning = _("fee_other_warning")
@@ -119,3 +118,4 @@ async def process_payment_selection(callback: CallbackQuery, _: Callable[[str], 
             )
             
     await callback.answer()
+

@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 from collections import defaultdict
 
-# Add current workspace directory to sys.path to resolve imports when running stand-alone
+# Prepend project root directory to sys.path to enable smooth relative packages importing when executed as standalone script
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from aiogram import Bot
@@ -17,7 +17,7 @@ from bot.config import settings
 from bot.database.connection import async_session
 from bot.database.models import Purchase
 
-# Configure Logging
+# Configure standalone worker telemetry logs format parameters
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -30,9 +30,8 @@ logger = logging.getLogger("export_worker")
 
 async def generate_history_file(telegram_id: int) -> bytes:
     """
-    Queries local PostgreSQL for user's purchases from the last 90 days
-    and constructs the structured text report bytes.
-    Format: Telegram ID, Day, list of purchases separated by Enter.
+    Retrieves purchase logs corresponding to the given Telegram user ID for the last 90 days.
+    Compiles a structured report containing purchase logs ordered chronologically and grouped by day.
     """
     from datetime import timedelta
     three_months_ago = datetime.utcnow() - timedelta(days=90)
@@ -51,27 +50,27 @@ async def generate_history_file(telegram_id: int) -> bytes:
     if not purchases:
         return b""
         
-    # Group by Day (YYYY-MM-DD)
+    # Group purchase entries by day (YYYY-MM-DD)
     grouped_purchases = defaultdict(list)
     for p in purchases:
         day_str = p.purchased_at.strftime("%Y-%m-%d")
         grouped_purchases[day_str].append(p)
         
-    # Build text file content
+    # Construct document lines
     lines = [
         f"Telegram ID: {telegram_id}",
         "=" * 40,
         ""
     ]
     
-    # Sort days descending
+    # Sort dates in descending order
     for day in sorted(grouped_purchases.keys(), reverse=True):
-        lines.append(f"День покупки: {day}")
+        lines.append(f"Purchase Date: {day}")
         lines.append("-" * 30)
         for p in grouped_purchases[day]:
             p_time = p.purchased_at.strftime("%H:%M")
             lines.append(f"[{p_time}] {p.product_name} - ${p.amount:.2f}")
-        lines.append("") # empty spacing between days
+        lines.append("") # Empty spacer line between days
         
     file_content = "\n".join(lines)
     return file_content.encode("utf-8")
@@ -79,17 +78,17 @@ async def generate_history_file(telegram_id: int) -> bytes:
 async def worker_main():
     logger.info("Initializing Cypher.Bot Export Worker...")
     
-    # Initialize Bot instance
+    # Instantiate bot instance to dispatch text documents to clients
     bot = Bot(token=settings.bot_token)
     
-    # Initialize Redis Client
+    # Instantiate Redis queue client
     redis_client = aioredis.from_url(settings.redis_url, decode_responses=True)
     
     logger.info("Export worker started. Listening for tasks on Redis list 'cypher_export_queue'...")
     
     try:
         while True:
-            # Perform blocking pop (timeout of 5 seconds to allow graceful shutdown)
+            # Perform blocking read on queue (with a 5 seconds timeout to allow graceful shutdown)
             pop_res = await redis_client.brpop("cypher_export_queue", timeout=5)
             if not pop_res:
                 continue
@@ -106,34 +105,33 @@ async def worker_main():
                 logger.error(f"Failed to parse task JSON: {e}")
                 continue
                 
-            # Set per-user lock to prevent parallel history exports for the same user
+            # Distributed Lock implementation to prevent concurrent file generation for the same user ID
             user_lock_key = f"export_lock:{tg_id}"
             lock_acquired = await redis_client.set(user_lock_key, "1", nx=True, ex=60)
             if not lock_acquired:
                 logger.warning(f"Report for user {tg_id} is already being compiled. Task re-queued.")
-                # push back into the tail of the queue
+                # Re-queue task to the tail of the list
                 await redis_client.lpush("cypher_export_queue", payload_str)
                 await asyncio.sleep(2)
                 continue
                 
             try:
-                # Compile Report bytes
+                # Generate report byte stream
                 report_bytes = await generate_history_file(tg_id)
                 
                 if not report_bytes:
                     logger.warning(f"No history found for Telegram ID {tg_id}")
-                    # Send alert
                     msg = "У вас нет истории покупок для экспорта." if lang == "ru" else "You have no purchase history to export."
                     await bot.send_message(chat_id=chat_id, text=msg)
                     continue
                 
-                # Wrap file
+                # Wrap byte array into buffered document container
                 doc_file = BufferedInputFile(
                     report_bytes, 
                     filename=f"cypher_history_{tg_id}_{datetime.utcnow().strftime('%Y%m%d')}.txt"
                 )
                 
-                # Send to Telegram chat
+                # Deliver document file straight to user DM
                 caption_msg = "✅ Ваша история покупок успешно сгенерирована!" if lang == "ru" else "✅ Your purchase history has been successfully generated!"
                 await bot.send_document(
                     chat_id=chat_id,
@@ -150,9 +148,9 @@ async def worker_main():
                 except Exception:
                     pass
             finally:
-                # Release per-user lock
+                # Release user lockout token
                 await redis_client.delete(user_lock_key)
-                
+                 
     except asyncio.CancelledError:
         logger.info("Worker execution cancelled. Shutting down...")
     finally:
@@ -164,3 +162,4 @@ if __name__ == "__main__":
         asyncio.run(worker_main())
     except KeyboardInterrupt:
         logger.info("Worker stopped by keyboard interrupt.")
+

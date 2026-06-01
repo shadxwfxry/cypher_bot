@@ -4,6 +4,7 @@ from typing import Callable, Dict, Any, Awaitable, Optional
 from bot.database.requests import get_or_create_user
 
 class Translator:
+    """Simple dictionary translation helper to retrieve localized strings by active locale preference."""
     def __init__(self, lang: str):
         self.lang = lang if lang in ["ru", "en"] else "en"
 
@@ -15,6 +16,11 @@ class Translator:
         return self.get(key, default)
 
 class I18nMiddleware(BaseMiddleware):
+    """
+    Custom i18n localization middleware.
+    Detects Telegram client default language code settings, loads/creates user profiles,
+    and injects localized callable translator `_` and model `db_user` into handlers context.
+    """
     async def __call__(
         self,
         handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
@@ -25,22 +31,24 @@ class I18nMiddleware(BaseMiddleware):
         if not event_user:
             return await handler(event, data)
         
-        # Load user from DB (or create with default language matching client if valid, otherwise en)
+        # Fallback to system user Telegram locale if supported, else default to English
         default_lang = "en"
         if event_user.language_code and event_user.language_code.lower() in ["ru", "en"]:
             default_lang = event_user.language_code.lower()
             
+        # Retrieve or instantiate user entry inside database
         user = await get_or_create_user(
             telegram_id=event_user.id,
             username=event_user.username or f"user_{event_user.id % 10000}",
             default_lang=default_lang
         )
         
-        # Instantiate translator with user database language
+        # Instantiate localized dictionary translator helper mapping user database preference
         translator = Translator(user.language)
         
-        # Inject into handler arguments
+        # Inject translator callables and DB model properties directly into event handling args
         data["_"] = translator
         data["db_user"] = user
         
         return await handler(event, data)
+

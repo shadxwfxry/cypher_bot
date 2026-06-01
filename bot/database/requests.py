@@ -11,6 +11,10 @@ async def get_or_create_user(
     username: Optional[str] = None, 
     default_lang: str = "en"
 ) -> User:
+    """
+    Retrieves an existing user or creates a new one in the database.
+    In DEBUG mode, populates the new profile with a realistic dummy purchase and transaction history.
+    """
     from sqlalchemy.exc import IntegrityError
     async with async_session() as session:
         result = await session.execute(
@@ -30,7 +34,7 @@ async def get_or_create_user(
                 await session.commit()
                 await session.refresh(user)
                 
-                # If in debug mode, automatically pre-populate realistic mock data for instant testing
+                # If running in DEBUG mode, auto-populate dummy transactional data for testing
                 from bot.config import settings
                 if settings.debug:
                     p1 = Purchase(telegram_id=telegram_id, product_name="💎 Premium VPN Access", amount=Decimal("15.00"))
@@ -46,14 +50,14 @@ async def get_or_create_user(
                     await session.commit()
                     await session.refresh(user)
             except IntegrityError:
-                # Concurrent transaction created the user first: rollback and fetch the committed row
+                # Handle potential race conditions (e.g. parallel session created row): rollback and fetch row
                 await session.rollback()
                 result = await session.execute(
                     select(User).where(User.telegram_id == telegram_id)
                 )
                 user = result.scalar_one()
         else:
-            # Update username if it changed and a new valid username is provided
+            # Sync username changes from Telegram client client-side to database record
             if username is not None and user.username != username:
                 user.username = username
                 await session.commit()
@@ -61,6 +65,7 @@ async def get_or_create_user(
         return user
 
 async def get_user_by_id(telegram_id: int) -> Optional[User]:
+    """Retrieves user profile data by their Telegram ID."""
     async with async_session() as session:
         result = await session.execute(
             select(User).where(User.telegram_id == telegram_id)
@@ -68,13 +73,17 @@ async def get_user_by_id(telegram_id: int) -> Optional[User]:
         return result.scalar_one_or_none()
 
 async def get_user_by_id_for_update(telegram_id: int, session: AsyncSession) -> Optional[User]:
-    """Retrieves user with a database row lock using SELECT FOR UPDATE."""
+    """
+    Acquires an exclusive row-level lock (SELECT FOR UPDATE) on a user within an active transaction.
+    Used to prevent balance corruption under concurrent write access (race conditions).
+    """
     result = await session.execute(
         select(User).where(User.telegram_id == telegram_id).with_for_update()
     )
     return result.scalar_one_or_none()
 
 async def update_user_language(telegram_id: int, language: str) -> None:
+    """Updates user locale preference."""
     async with async_session() as session:
         result = await session.execute(
             select(User).where(User.telegram_id == telegram_id)
@@ -85,6 +94,7 @@ async def update_user_language(telegram_id: int, language: str) -> None:
             await session.commit()
 
 async def update_user_site_login(telegram_id: int, site_login: Optional[str]) -> None:
+    """Binds an authenticated marketplace website username to the Telegram profile."""
     async with async_session() as session:
         result = await session.execute(
             select(User).where(User.telegram_id == telegram_id)
@@ -95,16 +105,19 @@ async def update_user_site_login(telegram_id: int, site_login: Optional[str]) ->
             await session.commit()
 
 async def update_user_balance(telegram_id: int, amount: Decimal) -> Optional[Decimal]:
-    """Increments user balance by amount (can be positive or negative). Returns new balance."""
+    """
+    Updates the user balance (amount can be positive for credits or negative for debits).
+    Returns the new balance value.
+    """
     async with async_session() as session:
-        # Add explicit row lock to prevent lost updates under concurrent payment webhooks
+        # Prevent concurrent billing anomalies using an exclusive row lock
         result = await session.execute(
             select(User).where(User.telegram_id == telegram_id).with_for_update()
         )
         user = result.scalar_one_or_none()
         if user:
             user.balance += amount
-            # Avoid negative balance
+            # Prevent balance from going below $0.00
             if user.balance < Decimal("0.00"):
                 user.balance = Decimal("0.00")
             new_balance = user.balance
@@ -113,7 +126,7 @@ async def update_user_balance(telegram_id: int, amount: Decimal) -> Optional[Dec
         return None
 
 async def get_user_stats(telegram_id: int) -> Tuple[int, Decimal]:
-    """Returns (purchases_count, purchases_sum)"""
+    """Returns user activity summary: (total_purchases_count, total_expenditure_usd)."""
     async with async_session() as session:
         count_query = select(func.count(Purchase.id)).where(Purchase.telegram_id == telegram_id)
         sum_query = select(func.sum(Purchase.amount)).where(Purchase.telegram_id == telegram_id)
@@ -126,6 +139,7 @@ async def get_user_stats(telegram_id: int) -> Tuple[int, Decimal]:
         return count, total_sum
 
 async def add_purchase(telegram_id: int, product_name: str, amount: Decimal) -> Purchase:
+    """Creates a completed purchase record log."""
     async with async_session() as session:
         purchase = Purchase(
             telegram_id=telegram_id,
@@ -138,6 +152,7 @@ async def add_purchase(telegram_id: int, product_name: str, amount: Decimal) -> 
         return purchase
 
 async def get_user_purchases_list(telegram_id: int, limit: int = 10) -> List[Purchase]:
+    """Retrieves list of user purchases sorted by date descending."""
     async with async_session() as session:
         result = await session.execute(
             select(Purchase)
@@ -154,6 +169,7 @@ async def add_transaction(
     method: str, 
     status: str = "completed"
 ) -> Transaction:
+    """Creates a new deposit transaction history log."""
     async with async_session() as session:
         tx = Transaction(
             telegram_id=telegram_id,
@@ -168,6 +184,7 @@ async def add_transaction(
         return tx
 
 async def get_user_transactions_list(telegram_id: int, limit: int = 10) -> List[Transaction]:
+    """Retrieves list of deposit logs sorted by date descending."""
     async with async_session() as session:
         result = await session.execute(
             select(Transaction)
@@ -178,7 +195,7 @@ async def get_user_transactions_list(telegram_id: int, limit: int = 10) -> List[
         return list(result.scalars().all())
 
 async def get_purchases_history_3_months(telegram_id: int) -> List[Purchase]:
-    """Returns purchases of the user from the last 90 days, ordered by date descending."""
+    """Retrieves 90-day purchase history log for document export tasks."""
     async with async_session() as session:
         three_months_ago = datetime.utcnow() - timedelta(days=90)
         result = await session.execute(
@@ -200,22 +217,25 @@ async def process_user_deposit(
     method: str, 
     usd_equiv: Decimal
 ) -> None:
-    """Atomically credits balance and creates a transaction log within a single database session."""
+    """
+    Atomically credits the deposit balance and creates a transaction log.
+    Both modifications are executed and committed inside a single transactional block with row locking.
+    """
     async with async_session() as session:
-        # Lock user row to prevent concurrency race conditions during balance increments
+        # Acquire dynamic row lock
         result = await session.execute(
             select(User).where(User.telegram_id == telegram_id).with_for_update()
         )
         user = result.scalar_one_or_none()
         if not user:
-            raise ValueError(f"User {telegram_id} not found during deposit processing")
+            raise ValueError(f"User with TG ID {telegram_id} not found during balance credit.")
             
-        # 1. Update user balance (ensure it does not go negative)
+        # 1. Update user balance securely
         user.balance += usd_equiv
         if user.balance < Decimal("0.00"):
             user.balance = Decimal("0.00")
             
-        # 2. Record the successful transaction log
+        # 2. Record transaction history log
         tx = Transaction(
             telegram_id=telegram_id,
             amount=amount,
@@ -225,6 +245,7 @@ async def process_user_deposit(
         )
         session.add(tx)
         
-        # Commit both updates atomically
+        # Commit atomic database transaction
         await session.commit()
+
 
