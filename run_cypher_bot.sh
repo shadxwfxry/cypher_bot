@@ -22,6 +22,7 @@ detect_venv() {
         source env/bin/activate
     else
         echo "[-] No virtual environment detected. Operating with system Python interpreter."
+        echo "[!] Tip: If imports fail, choose Option [4] from the main menu to initialize .venv and install dependencies."
     fi
 }
 
@@ -112,7 +113,15 @@ install_deps() {
     echo "======================================================================"
     echo "  Installing Dependencies from requirements.txt"
     echo "======================================================================"
+    
+    # Check if any standard venv folder exists
+    if [ ! -f ".venv/bin/activate" ] && [ ! -f "venv/bin/activate" ] && [ ! -f "env/bin/activate" ]; then
+        echo "[*] No virtual environment found. Initializing one in .venv..."
+        python3 -m venv .venv
+    fi
+    
     detect_venv
+    
     echo ""
     echo "[+] Upgrading pip to latest version..."
     python3 -m pip install --upgrade pip
