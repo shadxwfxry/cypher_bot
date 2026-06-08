@@ -33,8 +33,8 @@ logger = logging.getLogger(__name__)
 router = Router(name="admin_router")
 
 # Router wide protection: strictly restrict commands and callbacks to ADMIN_IDS config
-@router.message.filter(lambda msg: msg.from_user.id in settings.admin_ids)
-@router.callback_query.filter(lambda cb: cb.from_user.id in settings.admin_ids)
+router.message.filter(lambda msg: msg.from_user.id in settings.admin_ids)
+router.callback_query.filter(lambda cb: cb.from_user.id in settings.admin_ids)
 
 class AdminStates(StatesGroup):
     waiting_for_username = State()
