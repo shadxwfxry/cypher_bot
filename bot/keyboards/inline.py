@@ -1,6 +1,54 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from typing import Callable, Optional
 
+async def get_main_menu_keyboard_async(_: Callable[[str], str], lang: str) -> InlineKeyboardMarkup:
+    """
+    Creates premium main menu keyboard, dynamically reading button labels from SystemSetting DB.
+    """
+    from bot.services.admin_actions import get_system_setting
+    
+    btn_accounts = await get_system_setting(f"btn_accounts_{lang}", _("btn_accounts"))
+    btn_documents = await get_system_setting(f"btn_documents_{lang}", _("btn_documents"))
+    btn_profile = await get_system_setting(f"btn_profile_{lang}", _("btn_profile"))
+    btn_lookup = await get_system_setting(f"btn_lookup_{lang}", _("btn_lookup"))
+    btn_self_reg = await get_system_setting(f"btn_self_reg_{lang}", _("btn_self_reg"))
+    btn_fullz = await get_system_setting(f"btn_fullz_{lang}", _("btn_fullz"))
+    btn_rules = await get_system_setting(f"btn_rules_{lang}", _("btn_rules"))
+    btn_updates = await get_system_setting(f"btn_updates_{lang}", _("btn_updates"))
+    btn_support = await get_system_setting(f"btn_support_{lang}", _("btn_support"))
+    btn_toggle_lang = await get_system_setting(f"btn_toggle_lang_{lang}", _("btn_toggle_lang"))
+
+    keyboard = [
+        # Visually highlighted sections
+        [InlineKeyboardButton(text=btn_accounts, callback_data="menu:accounts", style="success")], 
+        [InlineKeyboardButton(text=btn_documents, callback_data="menu:documents", style="primary")], 
+        
+        # Profile & Lookup
+        [
+            InlineKeyboardButton(text=btn_profile, callback_data="menu:profile"),
+            InlineKeyboardButton(text=btn_lookup, callback_data="menu:lookup")
+        ],
+        
+        # Self-Reg & FULLZ sections
+        [
+            InlineKeyboardButton(text=btn_self_reg, callback_data="menu:self_reg"),
+            InlineKeyboardButton(text=btn_fullz, callback_data="menu:fullz")
+        ],
+        
+        # Rules & Updates
+        [
+            InlineKeyboardButton(text=btn_rules, callback_data="menu:rules"),
+            InlineKeyboardButton(text=btn_updates, callback_data="menu:updates")
+        ],
+        
+        # Support & Interface Language Toggle
+        [
+            InlineKeyboardButton(text=btn_support, callback_data="menu:support"),
+            InlineKeyboardButton(text=btn_toggle_lang, callback_data="menu:toggle_lang")
+        ]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
 def get_main_menu_keyboard(_: Callable[[str], str]) -> InlineKeyboardMarkup:
     """
     Creates premium main menu keyboard.

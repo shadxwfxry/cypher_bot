@@ -17,11 +17,21 @@ class User(Base):
     language: Mapped[str] = mapped_column(String(5), default="en")  # Language locale: 'ru' or 'en'
     site_login: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default=None)  # Linked site login/username
     balance: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"))  # Balance in USD
+    is_banned: Mapped[bool] = mapped_column(default=False)
+    is_subscribed: Mapped[bool] = mapped_column(default=True)
+    referrer_param: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
     # One-to-many relationships
     purchases: Mapped[List["Purchase"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     transactions: Mapped[List["Transaction"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+
+class SystemSetting(Base):
+    """System settings for dynamic text and configuration management."""
+    __tablename__ = "system_settings"
+    
+    key: Mapped[str] = mapped_column(String(255), primary_key=True)
+    value: Mapped[str] = mapped_column(String(4000))
 
 class Purchase(Base):
     """User purchase log model."""

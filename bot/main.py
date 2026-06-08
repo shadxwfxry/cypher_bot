@@ -18,6 +18,7 @@ from bot.database.connection import init_db
 from bot.middlewares.i18n import I18nMiddleware
 
 # Import handler routers
+from bot.handlers.admin import router as admin_router
 from bot.handlers.start import router as start_router
 from bot.handlers.profile import router as profile_router
 from bot.handlers.balance import router as balance_router
@@ -126,7 +127,13 @@ async def main():
     # Connect i18n middleware for automatic bilingual routing
     dp.update.outer_middleware(I18nMiddleware())
     
+    # Connect security middlewares (maintenance and ban enforcement)
+    from bot.middlewares.security import MaintenanceMiddleware, BanCheckMiddleware
+    dp.update.outer_middleware(MaintenanceMiddleware())
+    dp.update.outer_middleware(BanCheckMiddleware())
+    
     # Register command and callback handlers
+    dp.include_router(admin_router)
     dp.include_router(start_router)
     dp.include_router(profile_router)
     dp.include_router(balance_router)
