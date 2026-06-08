@@ -42,37 +42,42 @@ class AdminStates(StatesGroup):
     waiting_for_setting_value = State()
     waiting_for_broadcast_msg = State()
 
-def get_admin_main_keyboard() -> InlineKeyboardMarkup:
+def get_admin_main_keyboard(lang: str = "en") -> InlineKeyboardMarkup:
     """Builds the main control panel keyboard."""
+    btn_toggle_lang = "English 🇬🇧" if lang == "ru" else "Русский 🇷🇺"
+    
     keyboard = [
         [InlineKeyboardButton(text="📊 Statistics / Статистика", callback_data="admin:stats_menu")],
         [InlineKeyboardButton(text="🔍 Search User / Поиск юзера", callback_data="admin:search_user_menu")],
         [InlineKeyboardButton(text="⚙️ Tech Works / Тех. работы", callback_data="admin:maintenance_menu")],
         [InlineKeyboardButton(text="📝 Edit Texts / Настройка текстов", callback_data="admin:edit_settings_menu")],
         [InlineKeyboardButton(text="📢 Broadcast / Рассылка", callback_data="admin:broadcast_menu")],
-        [InlineKeyboardButton(text="🔙 Close / Закрыть panel", callback_data="admin:close")]
+        [
+            InlineKeyboardButton(text=btn_toggle_lang, callback_data="admin:toggle_lang"),
+            InlineKeyboardButton(text="🔙 Close / Закрыть panel", callback_data="admin:close")
+        ]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 @router.message(Command("admin"))
-async def admin_panel_cmd(message: Message, state: FSMContext):
+async def admin_panel_cmd(message: Message, state: FSMContext, db_user: Any):
     """Entry point command to launch admin control panel."""
     await state.clear()
     text = (
         "👑 <b>Cypher Bot Control Panel</b>\n\n"
         "Welcome, Administrator. Please choose a management function from the menu below:"
     )
-    await message.answer(text=text, reply_markup=get_admin_main_keyboard(), parse_mode="HTML")
+    await message.answer(text=text, reply_markup=get_admin_main_keyboard(db_user.language), parse_mode="HTML")
 
 @router.callback_query(F.data == "admin:main")
-async def back_to_admin_main(callback: CallbackQuery, state: FSMContext):
+async def back_to_admin_main(callback: CallbackQuery, state: FSMContext, db_user: Any):
     """Returns back to main admin menu panel."""
     await state.clear()
     text = (
         "👑 <b>Cypher Bot Control Panel</b>\n\n"
         "Welcome, Administrator. Please choose a management function from the menu below:"
     )
-    await callback.message.edit_text(text=text, reply_markup=get_admin_main_keyboard(), parse_mode="HTML")
+    await callback.message.edit_text(text=text, reply_markup=get_admin_main_keyboard(db_user.language), parse_mode="HTML")
     await callback.answer()
 
 # --- STATISTICS SECTION ---
@@ -216,10 +221,10 @@ async def edit_setting_select_cb(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 @router.message(AdminStates.waiting_for_setting_value)
-async def process_setting_value(message: Message, state: FSMContext):
+async def process_setting_value(message: Message, state: FSMContext, db_user: Any):
     if message.text == "/cancel":
         await state.clear()
-        await message.answer("Editing cancelled / Изменение отменено.", reply_markup=get_admin_main_keyboard())
+        await message.answer("Editing cancelled / Изменение отменено.", reply_markup=get_admin_main_keyboard(db_user.language))
         return
         
     data = await state.get_data()
@@ -231,7 +236,7 @@ async def process_setting_value(message: Message, state: FSMContext):
     
     await message.answer(
         text=f"✅ System setting <code>{key}</code> has been successfully updated!",
-        reply_markup=get_admin_main_keyboard(),
+        reply_markup=get_admin_main_keyboard(db_user.language),
         parse_mode="HTML"
     )
 
@@ -315,10 +320,10 @@ async def render_user_profile(user_id: int) -> Tuple[str, InlineKeyboardMarkup]:
     return text, keyboard
 
 @router.message(AdminStates.waiting_for_username)
-async def process_user_search(message: Message, state: FSMContext):
+async def process_user_search(message: Message, state: FSMContext, db_user: Any):
     if message.text == "/cancel":
         await state.clear()
-        await message.answer("Search cancelled.", reply_markup=get_admin_main_keyboard())
+        await message.answer("Search cancelled.", reply_markup=get_admin_main_keyboard(db_user.language))
         return
         
     query = message.text.strip().replace("@", "")
@@ -386,10 +391,10 @@ async def adjust_balance_prompt_cb(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 @router.message(AdminStates.waiting_for_balance_amount)
-async def process_balance_adjustment(message: Message, state: FSMContext):
+async def process_balance_adjustment(message: Message, state: FSMContext, db_user: Any):
     if message.text == "/cancel":
         await state.clear()
-        await message.answer("Balance adjustment cancelled.", reply_markup=get_admin_main_keyboard())
+        await message.answer("Balance adjustment cancelled.", reply_markup=get_admin_main_keyboard(db_user.language))
         return
         
     try:
@@ -414,7 +419,7 @@ async def process_balance_adjustment(message: Message, state: FSMContext):
     else:
         text = "❌ Failed to update balance. User not found / Ошибка выполнения."
         
-    await message.answer(text=text, reply_markup=get_admin_main_keyboard(), parse_mode="HTML")
+    await message.answer(text=text, reply_markup=get_admin_main_keyboard(db_user.language), parse_mode="HTML")
 
 # --- BULK NEWSLETTER BROADCAST SECTION ---
 @router.callback_query(F.data == "admin:broadcast_menu")
@@ -442,10 +447,10 @@ async def broadcast_menu_cb(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 @router.message(AdminStates.waiting_for_broadcast_msg)
-async def process_broadcast_message(message: Message, state: FSMContext):
+async def process_broadcast_message(message: Message, state: FSMContext, db_user: Any):
     if message.text == "/cancel":
         await state.clear()
-        await message.answer("Broadcast cancelled.", reply_markup=get_admin_main_keyboard())
+        await message.answer("Broadcast cancelled.", reply_markup=get_admin_main_keyboard(db_user.language))
         return
         
     # Save the message parameters in state data
@@ -474,7 +479,7 @@ async def process_broadcast_message(message: Message, state: FSMContext):
     await message.answer(text=text, reply_markup=keyboard, parse_mode="HTML")
 
 @router.callback_query(F.data == "admin:broadcast:confirm")
-async def confirm_broadcast_cb(callback: CallbackQuery, state: FSMContext, bot: Bot):
+async def confirm_broadcast_cb(callback: CallbackQuery, state: FSMContext, bot: Bot, db_user: Any):
     state_data = await state.get_data()
     text = state_data.get("broadcast_text")
     photo_id = state_data.get("broadcast_photo")
@@ -497,7 +502,7 @@ async def confirm_broadcast_cb(callback: CallbackQuery, state: FSMContext, bot: 
     if total_recipients == 0:
         await callback.message.edit_text(
             text="❌ No subscribed users found. Broadcast aborted.",
-            reply_markup=get_admin_main_keyboard()
+            reply_markup=get_admin_main_keyboard(db_user.language)
         )
         return
         
@@ -507,10 +512,10 @@ async def confirm_broadcast_cb(callback: CallbackQuery, state: FSMContext, bot: 
     )
     
     # Start asynchronous background task for broadcasting to avoid blocking bot execution loop
-    asyncio.create_task(run_broadcast_loop(bot, callback.from_user.id, recipient_ids, text, photo_id))
+    asyncio.create_task(run_broadcast_loop(bot, callback.from_user.id, recipient_ids, text, photo_id, db_user.language))
     await callback.answer()
 
-async def run_broadcast_loop(bot: Bot, admin_id: int, recipient_ids: list[int], text: str, photo_id: Optional[str]):
+async def run_broadcast_loop(bot: Bot, admin_id: int, recipient_ids: list[int], text: str, photo_id: Optional[str], admin_lang: str = "en"):
     """Background worker loop to transmit message with flood control delay."""
     success_count = 0
     fail_count = 0
@@ -537,7 +542,7 @@ async def run_broadcast_loop(bot: Bot, admin_id: int, recipient_ids: list[int], 
     )
     
     try:
-        await bot.send_message(chat_id=admin_id, text=summary_text, reply_markup=get_admin_main_keyboard(), parse_mode="HTML")
+        await bot.send_message(chat_id=admin_id, text=summary_text, reply_markup=get_admin_main_keyboard(admin_lang), parse_mode="HTML")
     except Exception as e:
         logger.error(f"Failed to deliver final broadcast report to admin {admin_id}: {e}")
 
@@ -547,3 +552,26 @@ async def close_admin_panel_cb(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.delete()
     await callback.answer(text="Admin panel closed / Админ-панель закрыта")
+
+@router.callback_query(F.data == "admin:toggle_lang")
+async def toggle_admin_language(callback: CallbackQuery, db_user: Any):
+    from bot.database.requests import update_user_language
+    from bot.middlewares.i18n import Translator
+    
+    new_lang = "ru" if db_user.language == "en" else "en"
+    await update_user_language(db_user.telegram_id, new_lang)
+    
+    db_user.language = new_lang
+    new_translator = Translator(new_lang)
+    
+    await callback.answer(text=new_translator("lang_switched"), show_alert=True)
+    
+    text = (
+        "👑 <b>Cypher Bot Control Panel</b>\n\n"
+        "Welcome, Administrator. Please choose a management function from the menu below:"
+    )
+    await callback.message.edit_text(
+        text=text,
+        reply_markup=get_admin_main_keyboard(new_lang),
+        parse_mode="HTML"
+    )

@@ -20,8 +20,8 @@ async def get_main_menu_keyboard_async(_: Callable[[str], str], lang: str) -> In
 
     keyboard = [
         # Visually highlighted sections
-        [InlineKeyboardButton(text=btn_accounts, callback_data="menu:accounts", style="success")], 
-        [InlineKeyboardButton(text=btn_documents, callback_data="menu:documents", style="primary")], 
+        [InlineKeyboardButton(text=btn_accounts, callback_data="menu:accounts", style="primary")], 
+        [InlineKeyboardButton(text=btn_documents, callback_data="menu:documents", style="success")], 
         
         # Profile & Lookup
         [
@@ -57,8 +57,8 @@ def get_main_menu_keyboard(_: Callable[[str], str]) -> InlineKeyboardMarkup:
     """
     keyboard = [
         # Visually highlighted sections
-        [InlineKeyboardButton(text=_("btn_accounts"), callback_data="menu:accounts", style="success")], # Accounts (Green)
-        [InlineKeyboardButton(text=_("btn_documents"), callback_data="menu:documents", style="primary")], # Documents (Blue)
+        [InlineKeyboardButton(text=_("btn_accounts"), callback_data="menu:accounts", style="primary")], # Accounts (Blue)
+        [InlineKeyboardButton(text=_("btn_documents"), callback_data="menu:documents", style="success")], # Documents (Green)
         
         # Profile & Lookup (Пробив)
         [
