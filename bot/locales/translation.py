@@ -17,6 +17,16 @@ TRANSLATIONS = {
         "btn_updates": "📢 Обновления",
         "btn_support": "🤝 Помощь",
         "btn_toggle_lang": "English 🇬🇧",
+        "admin_panel_welcome": (
+            "👑 <b>Панель управления Cypher Bot</b>\n\n"
+            "Добро пожаловать, Администратор. Пожалуйста, выберите функцию управления из меню ниже:"
+        ),
+        "admin_btn_stats": "📊 Статистика",
+        "admin_btn_search": "🔍 Поиск юзера",
+        "admin_btn_maintenance": "⚙️ Тех. работы",
+        "admin_btn_edit_texts": "📝 Настройка текстов",
+        "admin_btn_broadcast": "📢 Рассылка",
+        "admin_btn_close": "🔙 Закрыть",
         
         "profile_text": (
             "<b>👤 Ваш профиль Cypher</b>\n\n"
@@ -113,6 +123,16 @@ TRANSLATIONS = {
         "btn_updates": "📢 Updates",
         "btn_support": "🤝 Support",
         "btn_toggle_lang": "Русский 🇷🇺",
+        "admin_panel_welcome": (
+            "👑 <b>Cypher Bot Control Panel</b>\n\n"
+            "Welcome, Administrator. Please choose a management function from the menu below:"
+        ),
+        "admin_btn_stats": "📊 Statistics",
+        "admin_btn_search": "🔍 Search User",
+        "admin_btn_maintenance": "⚙️ Tech Works",
+        "admin_btn_edit_texts": "📝 Edit Texts",
+        "admin_btn_broadcast": "📢 Broadcast",
+        "admin_btn_close": "🔙 Close",
         
         "profile_text": (
             "<b>👤 Your Cypher Profile</b>\n\n"

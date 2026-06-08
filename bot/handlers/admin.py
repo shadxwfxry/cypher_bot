@@ -44,17 +44,20 @@ class AdminStates(StatesGroup):
 
 def get_admin_main_keyboard(lang: str = "en") -> InlineKeyboardMarkup:
     """Builds the main control panel keyboard."""
+    from bot.middlewares.i18n import Translator
+    _ = Translator(lang)
+    
     btn_toggle_lang = "English 🇬🇧" if lang == "ru" else "Русский 🇷🇺"
     
     keyboard = [
-        [InlineKeyboardButton(text="📊 Statistics / Статистика", callback_data="admin:stats_menu")],
-        [InlineKeyboardButton(text="🔍 Search User / Поиск юзера", callback_data="admin:search_user_menu")],
-        [InlineKeyboardButton(text="⚙️ Tech Works / Тех. работы", callback_data="admin:maintenance_menu")],
-        [InlineKeyboardButton(text="📝 Edit Texts / Настройка текстов", callback_data="admin:edit_settings_menu")],
-        [InlineKeyboardButton(text="📢 Broadcast / Рассылка", callback_data="admin:broadcast_menu")],
+        [InlineKeyboardButton(text=_("admin_btn_stats"), callback_data="admin:stats_menu")],
+        [InlineKeyboardButton(text=_("admin_btn_search"), callback_data="admin:search_user_menu")],
+        [InlineKeyboardButton(text=_("admin_btn_maintenance"), callback_data="admin:maintenance_menu")],
+        [InlineKeyboardButton(text=_("admin_btn_edit_texts"), callback_data="admin:edit_settings_menu")],
+        [InlineKeyboardButton(text=_("admin_btn_broadcast"), callback_data="admin:broadcast_menu")],
         [
             InlineKeyboardButton(text=btn_toggle_lang, callback_data="admin:toggle_lang"),
-            InlineKeyboardButton(text="🔙 Close / Закрыть panel", callback_data="admin:close")
+            InlineKeyboardButton(text=_("admin_btn_close"), callback_data="admin:close")
         ]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
@@ -63,21 +66,17 @@ def get_admin_main_keyboard(lang: str = "en") -> InlineKeyboardMarkup:
 async def admin_panel_cmd(message: Message, state: FSMContext, db_user: Any):
     """Entry point command to launch admin control panel."""
     await state.clear()
-    text = (
-        "👑 <b>Cypher Bot Control Panel</b>\n\n"
-        "Welcome, Administrator. Please choose a management function from the menu below:"
-    )
-    await message.answer(text=text, reply_markup=get_admin_main_keyboard(db_user.language), parse_mode="HTML")
+    from bot.middlewares.i18n import Translator
+    _ = Translator(db_user.language)
+    await message.answer(text=_("admin_panel_welcome"), reply_markup=get_admin_main_keyboard(db_user.language), parse_mode="HTML")
 
 @router.callback_query(F.data == "admin:main")
 async def back_to_admin_main(callback: CallbackQuery, state: FSMContext, db_user: Any):
     """Returns back to main admin menu panel."""
     await state.clear()
-    text = (
-        "👑 <b>Cypher Bot Control Panel</b>\n\n"
-        "Welcome, Administrator. Please choose a management function from the menu below:"
-    )
-    await callback.message.edit_text(text=text, reply_markup=get_admin_main_keyboard(db_user.language), parse_mode="HTML")
+    from bot.middlewares.i18n import Translator
+    _ = Translator(db_user.language)
+    await callback.message.edit_text(text=_("admin_panel_welcome"), reply_markup=get_admin_main_keyboard(db_user.language), parse_mode="HTML")
     await callback.answer()
 
 # --- STATISTICS SECTION ---
@@ -566,10 +565,7 @@ async def toggle_admin_language(callback: CallbackQuery, db_user: Any):
     
     await callback.answer(text=new_translator("lang_switched"), show_alert=True)
     
-    text = (
-        "👑 <b>Cypher Bot Control Panel</b>\n\n"
-        "Welcome, Administrator. Please choose a management function from the menu below:"
-    )
+    text = new_translator("admin_panel_welcome")
     await callback.message.edit_text(
         text=text,
         reply_markup=get_admin_main_keyboard(new_lang),
