@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     debug: bool = Field(default=False, alias="DEBUG")
     
     # Admin configurations
-    admin_ids: list[int] = Field(default=[], alias="ADMIN_IDS")
+    admin_ids: Any = Field(default=[], alias="ADMIN_IDS")
 
     @field_validator("admin_ids", mode="before")
     @classmethod
